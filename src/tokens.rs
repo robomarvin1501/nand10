@@ -1,5 +1,5 @@
 #[derive(Debug)]
-enum TokenType {
+pub enum TokenType {
     Keyword(Keyword),
     Symbol(Symbol),
 
@@ -115,34 +115,34 @@ pub enum Symbol {
 }
 
 impl Symbol {
-    pub fn new(s: &str) -> Option<Symbol> {
+    pub fn new(s: char) -> Option<Symbol> {
         let result = match s {
-            "(" => Some(Symbol::BracketLeft),
-            ")" => Some(Symbol::BracketRight),
+            '(' => Some(Symbol::BracketLeft),
+            ')' => Some(Symbol::BracketRight),
 
-            "{" => Some(Symbol::BracketCurlyLeft),
-            "}" => Some(Symbol::BracketCurlyRight),
+            '{' => Some(Symbol::BracketCurlyLeft),
+            '}' => Some(Symbol::BracketCurlyRight),
 
-            "[" => Some(Symbol::BracketSquareLeft),
-            "]" => Some(Symbol::BracketSquareRight),
+            '[' => Some(Symbol::BracketSquareLeft),
+            ']' => Some(Symbol::BracketSquareRight),
 
-            "." => Some(Symbol::Period),
-            "," => Some(Symbol::Comma),
-            ";" => Some(Symbol::SemiColon),
-            "+" => Some(Symbol::Plus),
-            "-" => Some(Symbol::Minus),
-            "*" => Some(Symbol::Times),
-            "/" => Some(Symbol::Divide),
+            '.' => Some(Symbol::Period),
+            ',' => Some(Symbol::Comma),
+            ';' => Some(Symbol::SemiColon),
+            '+' => Some(Symbol::Plus),
+            '-' => Some(Symbol::Minus),
+            '*' => Some(Symbol::Times),
+            '/' => Some(Symbol::Divide),
 
-            "&" => Some(Symbol::And),
-            "|" => Some(Symbol::Or),
-            "<" => Some(Symbol::LessThan),
-            ">" => Some(Symbol::GreaterThan),
-            "=" => Some(Symbol::Equals),
-            "~" => Some(Symbol::Not),
+            '&' => Some(Symbol::And),
+            '|' => Some(Symbol::Or),
+            '<' => Some(Symbol::LessThan),
+            '>' => Some(Symbol::GreaterThan),
+            '=' => Some(Symbol::Equals),
+            '~' => Some(Symbol::Not),
 
-            "^" => Some(Symbol::ShiftLeft),
-            "#" => Some(Symbol::ShiftRight),
+            '^' => Some(Symbol::ShiftLeft),
+            '#' => Some(Symbol::ShiftRight),
 
             _ => None,
         };
@@ -156,7 +156,9 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub fn new(s: String) -> Self {
-        Self { identifier: s }
+    pub fn new(s: &String) -> Self {
+        Self {
+            identifier: s.to_string(),
+        }
     }
 }

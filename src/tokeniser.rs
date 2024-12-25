@@ -1,34 +1,99 @@
+use crate::tokens::{Identifier, Keyword, Symbol, Token, TokenType};
+
 const COMMENT_BEGIN: &'static str = "//";
-const MULTI_LINE_COMMENT_BEGIN: &'static str = "/*";
-const MULTI_LINE_COMMENT_END: &'static str = "*/";
+const DELIMITERS: &'static str = " \n\t\r";
 
-
-/*
- *
-    - keyword: 'class' | 'constructor' | 'function' | 'method' | 'field' |
-               'static' | 'var' | 'int' | 'char' | 'boolean' | 'void' | 'true' |
-               'false' | 'null' | 'this' | 'let' | 'do' | 'if' | 'else' |
-               'while' | 'return'
-    - symbol: '{' | '}' | '(' | ')' | '[' | ']' | '.' | ',' | ';' | '+' |
-              '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=' | '~' | '^' | '#'
- */
-
-enum TokenType {
-    Keyword,
-    Symbol,
-
-
-}
-
-pub #[derive(Debug)]
-struct Token {
-    type: TokenType
-}
-
-pub fn tokenise(input_data: String) {
+pub fn tokenise(input_data: String) -> Vec<Token> {
     let whitespaces_cleaned: String = remove_whitespace(input_data);
 
+    let mut current_token: String = String::new();
+    let mut chars = whitespaces_cleaned.chars().peekable();
+
+    let mut tokens: Vec<Token> = vec![];
+
+    while let Some(c) = chars.next() {
+        if c.is_whitespace() {
+            // Whitespace ends a token
+            if !current_token.is_empty() {
+                finalise_token(&mut current_token, &mut tokens);
+            }
+            continue;
+        }
+
+        if let Some(symbol) = Symbol::new(c) {
+            // A symbol ends the current token, so finalise it
+            if !current_token.is_empty() {
+                finalise_token(&mut current_token, &mut tokens);
+            }
+            // Add the symbol as a new token
+            tokens.push(Token::new(TokenType::Symbol(symbol)));
+            continue;
+        }
+
+        if c == '"' {
+            // Handle string constants
+            if !current_token.is_empty() {
+                finalise_token(&mut current_token, &mut tokens);
+            }
+            // Collect the entire string constant
+            let string_constant = collect_string_constant(&mut chars);
+            tokens.push(Token::new(TokenType::StringConstant(string_constant)));
+            continue;
+        }
+
+        if c.is_digit(10) && current_token.is_empty() {
+            // Handle integer constants
+            let integer_constant = collect_integer_constant(c, &mut chars);
+            tokens.push(Token::new(TokenType::IntegerConstant(integer_constant)));
+            continue;
+        }
+
+        // Build up the current token
+        current_token.push(c);
+    }
+
+    // Finalize any remaining token
+    if !current_token.is_empty() {
+        finalise_token(&mut current_token, &mut tokens);
+    }
+
     println!("{}", whitespaces_cleaned);
+    return tokens;
+}
+
+fn finalise_token(current_token: &mut String, tokens: &mut Vec<Token>) {
+    if let Some(keyword) = Keyword::new(current_token) {
+        tokens.push(Token::new(TokenType::Keyword(keyword)));
+    } else {
+        tokens.push(Token::new(TokenType::Identifier(Identifier::new(
+            current_token,
+        ))));
+    }
+    current_token.clear();
+}
+
+fn collect_string_constant(chars: &mut impl Iterator<Item = char>) -> String {
+    let mut string_constant = String::new();
+    while let Some(c) = chars.next() {
+        if c == '"' {
+            break;
+        }
+        string_constant.push(c);
+    }
+    string_constant
+}
+
+fn collect_integer_constant(start: char, chars: &mut impl Iterator<Item = char>) -> u16 {
+    let mut num = start.to_digit(10).unwrap() as u16;
+    while let Some(c) = chars.peekable().peek() {
+        if c.is_digit(10) {
+            num = num * 10 + c.to_digit(10).unwrap() as u16;
+            chars.next();
+        } else {
+            break;
+        }
+    }
+    num
 }
 
 fn remove_whitespace(input_data: String) -> String {
@@ -60,14 +125,14 @@ fn remove_multi_line_comments(input_data: String) -> String {
         if in_comment {
             if c == '*' && chars.peek() == Some(&'/') {
                 in_comment = false;
-                chars.next();
+                chars.next(); // Consume '/'
             }
         } else {
-            if c == '/' && chars.peek() == Some(&'/') {
+            if c == '/' && chars.peek() == Some(&'*') {
                 in_comment = true;
-                chars.next();
+                chars.next(); // Consume '*'
             } else {
-                result.push(c);
+                result.push(c); // Not in comment, so add the character to the result
             }
         }
     }

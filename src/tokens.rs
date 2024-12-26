@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     Keyword(Keyword),
     Symbol(Symbol),
@@ -9,7 +9,7 @@ pub enum TokenType {
     Identifier(Identifier),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub token: TokenType,
 }
@@ -20,7 +20,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Class,
     Constructor,
@@ -84,7 +84,7 @@ impl Keyword {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Symbol {
     BracketLeft,
     BracketRight,
@@ -150,7 +150,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
     identifier: String,
 }

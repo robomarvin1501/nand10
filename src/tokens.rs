@@ -186,6 +186,42 @@ impl Symbol {
     }
 }
 
+impl std::fmt::Display for Symbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Symbol::BracketLeft => "(",
+                Symbol::BracketRight => ")",
+
+                Symbol::BracketCurlyLeft => "{",
+                Symbol::BracketCurlyRight => "}",
+                Symbol::BracketSquareLeft => "[",
+                Symbol::BracketSquareRight => "]",
+
+                Symbol::Period => ".",
+                Symbol::Comma => ",",
+                Symbol::SemiColon => ";",
+                Symbol::Plus => "+",
+                Symbol::Minus => "-",
+                Symbol::Times => "*",
+                Symbol::Divide => "/",
+
+                Symbol::And => "&amp",
+                Symbol::Or => "|",
+                Symbol::LessThan => "&lt",
+                Symbol::GreaterThan => "&gt",
+                Symbol::Equals => "=",
+                Symbol::Not => "~",
+
+                Symbol::ShiftLeft => "^",
+                Symbol::ShiftRight => "#",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
     identifier: String,

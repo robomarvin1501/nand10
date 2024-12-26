@@ -84,6 +84,42 @@ impl Keyword {
     }
 }
 
+impl std::fmt::Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Keyword::Class => "class",
+                Keyword::Constructor => "constructor",
+                Keyword::Function => "function",
+                Keyword::Method => "method",
+                Keyword::Field => "field",
+
+                Keyword::Static => "static",
+                Keyword::Var => "var",
+                Keyword::Int => "int",
+                Keyword::Char => "char",
+                Keyword::Boolean => "boolean",
+                Keyword::Void => "void",
+
+                Keyword::True => "true",
+                Keyword::False => "false",
+                Keyword::Null => "null",
+
+                Keyword::This => "this",
+                Keyword::Let => "let",
+                Keyword::Do => "do",
+
+                Keyword::If => "if",
+                Keyword::Else => "else",
+                Keyword::While => "while",
+                Keyword::Return => "return",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Symbol {
     BracketLeft,

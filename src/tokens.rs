@@ -11,7 +11,7 @@ pub enum TokenType {
 
 #[derive(Debug)]
 pub struct Token {
-    token: TokenType,
+    pub token: TokenType,
 }
 
 impl Token {

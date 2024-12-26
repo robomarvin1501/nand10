@@ -5,9 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod parser;
+mod token_stream;
 mod tokeniser;
 mod tokens;
-mod parser;
 
 // TODO derive macro that has a print or something that emits
 // #indent size <struct name>
@@ -70,10 +71,7 @@ fn compile_file(input_path: PathBuf, output_path: &PathBuf) {
 }
 
 fn write_to_file(path: &PathBuf, s: Vec<String>) {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .open(path)
-        .unwrap();
+    let mut file = OpenOptions::new().write(true).open(path).unwrap();
     for line in s {
         file.write(line.as_bytes()).unwrap();
     }

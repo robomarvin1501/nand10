@@ -9,6 +9,24 @@ pub enum TokenType {
     Identifier(Identifier),
 }
 
+impl std::fmt::Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenType::Keyword(keyword) => write!(f, "<keyword> {} </keyword>", keyword),
+            TokenType::Symbol(symbol) => write!(f, "<symbol> {} </symbol>", symbol),
+            TokenType::IntegerConstant(value) => {
+                write!(f, "<integerConstant> {} </integerConstant>", value)
+            }
+            TokenType::StringConstant(value) => {
+                write!(f, "<stringConstant> {} </stringConstant>", value)
+            }
+            TokenType::Identifier(identifier) => {
+                write!(f, "<identifier> {} </identifier>", identifier)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub token: TokenType,
@@ -17,6 +35,12 @@ pub struct Token {
 impl Token {
     pub fn new(tt: TokenType) -> Self {
         Self { token: tt }
+    }
+}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.token)
     }
 }
 
@@ -86,37 +110,32 @@ impl Keyword {
 
 impl std::fmt::Display for Keyword {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Keyword::Class => "class",
-                Keyword::Constructor => "constructor",
-                Keyword::Function => "function",
-                Keyword::Method => "method",
-                Keyword::Field => "field",
+        let keyword_str = match self {
+            Keyword::Class => "class",
+            Keyword::Constructor => "constructor",
+            Keyword::Function => "function",
+            Keyword::Method => "method",
+            Keyword::Field => "field",
+            Keyword::Static => "static",
+            Keyword::Var => "var",
+            Keyword::Int => "int",
+            Keyword::Char => "char",
+            Keyword::Boolean => "boolean",
+            Keyword::Void => "void",
+            Keyword::True => "true",
+            Keyword::False => "false",
+            Keyword::Null => "null",
+            Keyword::This => "this",
+            Keyword::Let => "let",
+            Keyword::Do => "do",
+            Keyword::If => "if",
+            Keyword::Else => "else",
+            Keyword::While => "while",
+            Keyword::Return => "return",
+        };
 
-                Keyword::Static => "static",
-                Keyword::Var => "var",
-                Keyword::Int => "int",
-                Keyword::Char => "char",
-                Keyword::Boolean => "boolean",
-                Keyword::Void => "void",
-
-                Keyword::True => "true",
-                Keyword::False => "false",
-                Keyword::Null => "null",
-
-                Keyword::This => "this",
-                Keyword::Let => "let",
-                Keyword::Do => "do",
-
-                Keyword::If => "if",
-                Keyword::Else => "else",
-                Keyword::While => "while",
-                Keyword::Return => "return",
-            }
-        )
+        // Format the keyword as expected by your XML
+        write!(f, "<keyword> {} </keyword>", keyword_str)
     }
 }
 
@@ -188,37 +207,34 @@ impl Symbol {
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Symbol::BracketLeft => "(",
-                Symbol::BracketRight => ")",
+        let symbol_str = match self {
+            Symbol::BracketLeft => "(",
+            Symbol::BracketRight => ")",
 
-                Symbol::BracketCurlyLeft => "{",
-                Symbol::BracketCurlyRight => "}",
-                Symbol::BracketSquareLeft => "[",
-                Symbol::BracketSquareRight => "]",
+            Symbol::BracketCurlyLeft => "{",
+            Symbol::BracketCurlyRight => "}",
+            Symbol::BracketSquareLeft => "[",
+            Symbol::BracketSquareRight => "]",
 
-                Symbol::Period => ".",
-                Symbol::Comma => ",",
-                Symbol::SemiColon => ";",
-                Symbol::Plus => "+",
-                Symbol::Minus => "-",
-                Symbol::Times => "*",
-                Symbol::Divide => "/",
+            Symbol::Period => ".",
+            Symbol::Comma => ",",
+            Symbol::SemiColon => ";",
+            Symbol::Plus => "+",
+            Symbol::Minus => "-",
+            Symbol::Times => "*",
+            Symbol::Divide => "/",
 
-                Symbol::And => "&amp",
-                Symbol::Or => "|",
-                Symbol::LessThan => "&lt",
-                Symbol::GreaterThan => "&gt",
-                Symbol::Equals => "=",
-                Symbol::Not => "~",
+            Symbol::And => "&amp",
+            Symbol::Or => "|",
+            Symbol::LessThan => "&lt",
+            Symbol::GreaterThan => "&gt",
+            Symbol::Equals => "=",
+            Symbol::Not => "~",
 
-                Symbol::ShiftLeft => "^",
-                Symbol::ShiftRight => "#",
-            }
-        )
+            Symbol::ShiftLeft => "^",
+            Symbol::ShiftRight => "#",
+        };
+        write!(f, "<symbol> {} </symbol>", symbol_str)
     }
 }
 

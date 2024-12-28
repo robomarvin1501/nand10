@@ -15,23 +15,20 @@ impl<'a> TokenStream<'a> {
         stream
     }
 
-    pub fn advance(&mut self) -> Result<Token, String> {
+    pub fn advance(&mut self) -> Option<&'a Token> {
         self.current = self.tokens.next();
-        return match self.current {
-            Some(_) => Ok(self.current.clone()),
-            None => Err("Unexpected end of tokens".to_string()),
-        };
+        self.current
     }
 
     pub fn peek(&self) -> Option<&Token> {
         self.current
     }
 
-    pub fn expect(&mut self, expected: &TokenType) -> Result<TokenType, String> {
+    pub fn expect(&mut self, expected: &TokenType) -> Result<(), String> {
         if let Some(token) = self.current {
             if &token.token == expected {
-                self.advance();
-                Ok(token.token.clone())
+                self.advance(); // Consume the token
+                Ok(())
             } else {
                 Err(format!("Expected {:?}, found {:?}", expected, token))
             }

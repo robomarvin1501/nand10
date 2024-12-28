@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::token_stream::TokenStream;
 use crate::tokeniser::tokenise;
 use crate::tokens::{Keyword, Symbol, Token, TokenType};
@@ -10,33 +12,10 @@ pub fn parse(input_data: String) {
     while let Some(token) = token_stream.peek() {
         if let Err(err) = match token.token.clone() {
             TokenType::Keyword(keyword) => match keyword {
-                Keyword::Class => compile_class(),
-                Keyword::Constructor | Keyword::Function | Keyword::Method => {
-                    compile_subroutine(&mut token_stream, &mut output)
-                }
-                Keyword::Field | Keyword::Static => compile_class_var_dec(),
-                Keyword::Var => compile_var_dec(),
-                Keyword::Int
-                | Keyword::Char
-                | Keyword::Boolean
-                | Keyword::Void
-                | Keyword::True
-                | Keyword::False
-                | Keyword::Null
-                | Keyword::This => {
-                    panic!("{} should not be consumed by the keyword level", keyword)
-                }
-                Keyword::Let => compile_let(),
-                Keyword::Do => compile_do(&mut token_stream, &mut output),
-                Keyword::If => compile_if(),
-                Keyword::Else => panic!("{} should have been consumed by if", keyword),
-                Keyword::While => compile_while(),
-                Keyword::Return => compile_return(),
+                Keyword::Class => compile_class(&mut token_stream, &mut output),
+                _ => panic!("Compilation call to something not the class at the top level"),
             },
-            TokenType::Symbol(s) => Ok(()),
-            TokenType::IntegerConstant(i) => Ok(()),
-            TokenType::StringConstant(s) => Ok(()),
-            TokenType::Identifier(identifier) => Ok(()),
+            _ => panic!("Compilation call to something not the class at the top level"),
         } {
             eprintln!("ERROR: {}", err);
             break;
@@ -45,7 +24,7 @@ pub fn parse(input_data: String) {
 }
 
 // Compiles a complete class.
-fn compile_class() -> Result<(), String> {
+fn compile_class(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
     Ok(())
 }
 
@@ -82,14 +61,87 @@ fn compile_do(stream: &mut TokenStream, output: &mut String) -> Result<(), Strin
     output.push_str("<doStatement>\n");
 
     stream.expect(&TokenType::Keyword(Keyword::Do))?;
-    output.push_str(&format!("{}", Keyword::Do));
+    output.push_str(&format!("{}\n", Keyword::Do));
 
     compile_subroutine_call(stream, output)?;
 
     stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
-    output.push_str(&format!("{}", Symbol::SemiColon));
+    output.push_str(&format!("{}\n", Symbol::SemiColon));
 
     output.push_str("</doStatement>\n");
+    Ok(())
+}
+
+// Compiles a subroutine call.
+fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    // A subroutine call can be of the form:
+    // subroutineName(expressionList) OR
+    // className|varName.subroutineName(expressionList)
+
+    // Start by checking for an identifier (class/var/subroutine name)
+    if let Some(token) = stream.peek() {
+        if let TokenType::Identifier(identifier) = &token.token {
+            output.push_str(&format!("<identifier> {} </identifier>\n", identifier));
+            stream.advance(); // Consume the identifier
+        } else {
+            return Err(format!("Expected an identifier, found {:?}", token.token));
+        }
+    } else {
+        return Err("Unexpected end of tokens while parsing subroutine call".to_string());
+    }
+
+    // Look for a '.' or '(' to determine the form of the subroutine call
+    if let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Symbol(Symbol::Period) => {
+                // Handle className|varName.subroutineName(expressionList)
+                output.push_str(&format!("<symbol> . </symbol>\n"));
+                stream.advance(); // Consume '.'
+
+                // Expect another identifier (the subroutine name)
+                if let Some(token) = stream.peek() {
+                    if let TokenType::Identifier(subroutine_name) = &token.token {
+                        output
+                            .push_str(&format!("<identifier> {} </identifier>\n", subroutine_name));
+                        stream.advance(); // Consume the subroutine name
+                    } else {
+                        return Err(format!(
+                            "Expected a subroutine name after '.', found {:?}",
+                            token.token
+                        ));
+                    }
+                } else {
+                    return Err("Unexpected end of tokens after '.'".to_string());
+                }
+            }
+            TokenType::Symbol(Symbol::BracketLeft) => {
+                // Handle subroutineName(expressionList)
+                // Nothing extra needed here
+            }
+            _ => {
+                return Err(format!(
+                    "Expected '.' or '(' in subroutine call, found {:?}",
+                    token.token
+                ));
+            }
+        }
+    }
+
+    // Expect '(' for the parameter list
+    if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketLeft)) {
+        return Err(format!("Error while parsing subroutine call: {}", err));
+    }
+    output.push_str(&format!("<symbol> ( </symbol>\n"));
+
+    // Compile the expression list
+    compile_expression_list(stream, output)?;
+
+    // Expect ')' to close the parameter list
+    if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketRight)) {
+        return Err(format!("Error while parsing subroutine call: {}", err));
+    }
+    output.push_str(&format!("<symbol> ) </symbol>\n"));
+
     Ok(())
 }
 
@@ -130,7 +182,10 @@ fn compile_term() -> Result<(), String> {
 }
 
 // Compiles a (possibly empty) comma-separated list of expressions.
-fn compile_expression_list(token_stream: &mut TokenStream) -> Result<(), String> {
+fn compile_expression_list(
+    token_stream: &mut TokenStream,
+    output: &mut String,
+) -> Result<(), String> {
     Ok(())
 }
 
@@ -144,4 +199,37 @@ fn write_close_tag(tag: &str, output: &mut String) {
 
 fn write_token(token: &Token, output: &mut String) {
     output.push_str(&format!("{}", token));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_do() {
+        let raw_jack = String::from("do Hello.world();");
+        let tokens = tokenise(raw_jack);
+        let mut token_stream: TokenStream = TokenStream::new(&tokens);
+        let mut output = String::new();
+        let comp = compile_do(&mut token_stream, &mut output);
+        assert!(
+            comp.is_ok(),
+            "compile_do should succeed, but got: {:?}",
+            comp
+        );
+        let expected_output = r"<doStatement>
+<keyword> do </keyword>
+<identifier> Hello </identifier>
+<symbol> . </symbol>
+<identifier> world </identifier>
+<symbol> ( </symbol>
+<symbol> ) </symbol>
+<symbol> ; </symbol>
+</doStatement>
+";
+        assert_eq!(
+            output, expected_output,
+            "Output of compile_do does not match the expected output"
+        );
+    }
 }

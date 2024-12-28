@@ -2,7 +2,7 @@ use core::panic;
 
 use crate::token_stream::TokenStream;
 use crate::tokeniser::tokenise;
-use crate::tokens::{Keyword, Symbol, Token, TokenType};
+use crate::tokens::{Keyword, Symbol, TokenType};
 
 pub fn parse(input_data: String) {
     let tokens = tokenise(input_data);
@@ -25,6 +25,51 @@ pub fn parse(input_data: String) {
 
 // Compiles a complete class.
 fn compile_class(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "class";
+    write_open_tag(TAG, output);
+
+    stream.expect(&TokenType::Keyword(Keyword::Class))?;
+    write_token(&Keyword::Class, output);
+
+    // Parse and write the class name
+    if let Some(token) = stream.peek() {
+        if let TokenType::Identifier(_) = &token.token {
+            write_token(&token.token, output);
+            stream.advance(); // Consume the class name
+        } else {
+            return Err(format!("Expected class name, found {:?}", token.token));
+        }
+    } else {
+        return Err("Unexpected end of tokens while parsing class name".to_string());
+    }
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+    write_token(&Symbol::BracketCurlyLeft, output);
+
+    // Compile class variable declarations (static/field)
+    while let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Keyword(Keyword::Static) | TokenType::Keyword(Keyword::Field) => {
+                compile_class_var_dec(stream, output)?;
+            }
+            _ => break, // Exit loop if it's not a class var declaration
+        }
+    }
+
+    // Compile class constructor/method/function declarations
+    while let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Keyword(Keyword::Constructor)
+            | TokenType::Keyword(Keyword::Method)
+            | TokenType::Keyword(Keyword::Function) => compile_subroutine(stream, output)?,
+            _ => break,
+        }
+    }
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+    write_token(&Symbol::BracketCurlyRight, output);
+
+    write_close_tag(TAG, output);
     Ok(())
 }
 
@@ -197,7 +242,7 @@ fn write_close_tag(tag: &str, output: &mut String) {
     output.push_str(&format!("</{}>\n", tag));
 }
 
-fn write_token(token: &Token, output: &mut String) {
+fn write_token<T: std::fmt::Display>(token: &T, output: &mut String) {
     output.push_str(&format!("{}", token));
 }
 
@@ -227,6 +272,75 @@ mod tests {
 <symbol> ; </symbol>
 </doStatement>
 ";
+        assert_eq!(
+            output, expected_output,
+            "Output of compile_do does not match the expected output"
+        );
+    }
+
+    #[test]
+    fn test_class() {
+        let raw_jack = String::from(
+            "class Test {
+static int x;
+field boolean y;
+constructor Test() { }
+function void foo() { }
+}",
+        );
+        let expected_output = String::from(
+            "<class>
+<keyword> class </keyword>
+<identifier> Test </identifier>
+<symbol> { </symbol>
+<classVarDec>
+    <keyword> static </keyword>
+    <keyword> int </keyword>
+    <identifier> x </identifier>
+    <symbol> ; </symbol>
+</classVarDec>
+<classVarDec>
+    <keyword> field </keyword>
+    <keyword> boolean </keyword>
+    <identifier> y </identifier>
+    <symbol> ; </symbol>
+</classVarDec>
+<subroutineDec>
+    <keyword> constructor </keyword>
+    <identifier> Test </identifier>
+    <symbol> ( </symbol>
+    <parameterList> </parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+        <symbol> { </symbol>
+        <symbol> } </symbol>
+    </subroutineBody>
+</subroutineDec>
+<subroutineDec>
+    <keyword> function </keyword>
+    <keyword> void </keyword>
+    <identifier> foo </identifier>
+    <symbol> ( </symbol>
+    <parameterList> </parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+        <symbol> { </symbol>
+        <symbol> } </symbol>
+    </subroutineBody>
+</subroutineDec>
+<symbol> } </symbol>
+</class>
+",
+        );
+        let tokens = tokenise(raw_jack);
+        let mut token_stream = TokenStream::new(&tokens);
+        let mut output = String::new();
+        let comp = compile_class(&mut token_stream, &mut output);
+        assert!(
+            comp.is_ok(),
+            "compile_do should succeed, but got: {:?}",
+            comp
+        );
         assert_eq!(
             output, expected_output,
             "Output of compile_do does not match the expected output"

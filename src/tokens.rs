@@ -240,7 +240,7 @@ impl std::fmt::Display for Symbol {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
-    identifier: String,
+    pub identifier: String,
 }
 
 impl Identifier {

@@ -74,7 +74,87 @@ fn compile_class(stream: &mut TokenStream, output: &mut String) -> Result<(), St
 }
 
 // Compiles a static declaration or a field declaration.
-fn compile_class_var_dec() -> Result<(), String> {
+fn compile_class_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "classVarDec";
+    write_open_tag(TAG, output);
+    let kind: TokenType;
+    if let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Keyword(Keyword::Field) | TokenType::Keyword(Keyword::Static) => {
+                kind = token.token.clone();
+                stream.advance();
+            }
+            _ => return Err(format!("Expected static or field, found {:?}", token.token)),
+        }
+    } else {
+        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
+    }
+
+    let var_type: TokenType;
+    if let Some(token) = stream.peek() {
+        match &token.token {
+            // TODO What if it's a class name?
+            TokenType::Keyword(Keyword::Int)
+            | TokenType::Keyword(Keyword::Char)
+            | TokenType::Keyword(Keyword::Boolean) => {
+                var_type = token.token.clone();
+                stream.advance();
+            }
+            _ => return Err(format!("Expected type, found {:?}", token.token)),
+        }
+    } else {
+        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
+    }
+
+    let mut var_name: TokenType;
+    if let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Identifier(_) => {
+                var_name = token.token.clone();
+                stream.advance();
+            }
+            _ => return Err(format!("Expected variable name, found {:?}", token.token)),
+        }
+    } else {
+        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
+    }
+
+    // output variable xml
+    write_token(&kind, output);
+    write_token(&var_type, output);
+    write_token(&var_name, output);
+
+    while let Some(token) = stream.peek() {
+        match &token.token {
+            TokenType::Symbol(Symbol::Comma) => {
+                stream.advance();
+                if let Some(token) = stream.peek() {
+                    match &token.token {
+                        TokenType::Identifier(_) => {
+                            var_name = token.token.clone();
+                            write_token(&Symbol::Comma, output);
+                            write_token(&var_name, output);
+                            stream.advance();
+                        }
+                        _ => {
+                            return Err(format!("Expected variable name, found {:?}", token.token))
+                        }
+                    }
+                } else {
+                    return Err(
+                        "Unexpected end of tokens when parsing class variable declaration"
+                            .to_string(),
+                    );
+                }
+                // output more variable xml
+            }
+            _ => break,
+        }
+    }
+    stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
+    write_token(&Symbol::SemiColon, output);
+
+    write_close_tag(TAG, output);
     Ok(())
 }
 
@@ -284,6 +364,7 @@ mod tests {
             "class Test {
 static int x;
 field boolean y;
+field char a, b;
 constructor Test() { }
 function void foo() { }
 }",
@@ -303,6 +384,14 @@ function void foo() { }
     <keyword> field </keyword>
     <keyword> boolean </keyword>
     <identifier> y </identifier>
+    <symbol> ; </symbol>
+</classVarDec>
+<classVarDec>
+    <keyword> field </keyword>
+    <keyword> char </keyword>
+    <identifier> a </identifier>
+    <symbol> , </symbol>
+    <identifier> b </identifier>
     <symbol> ; </symbol>
 </classVarDec>
 <subroutineDec>

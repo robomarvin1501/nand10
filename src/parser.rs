@@ -168,9 +168,12 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
         stream,
         &[Keyword::Constructor, Keyword::Function, Keyword::Method],
     )?;
+    write_token(&kind, output);
     let return_type = parse_type(stream, true)?;
+    write_token(&return_type, output);
 
-    let function_name = parse_identifier(stream);
+    let function_name = parse_identifier(stream)?;
+    write_token(&function_name, output);
 
     stream.expect(&TokenType::Symbol(Symbol::BracketLeft))?;
     write_token(&TokenType::Symbol(Symbol::BracketLeft), output);
@@ -199,7 +202,28 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
 // Compiles a (possibly empty) parameter list, not including the
 //      enclosing "()".
 fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    if let Some(token) = stream.peek() {
+        if token.token ==  TokenType::Symbol(Symbol::BracketRight) {
+            return Ok(());
+        }
+
+        let mut arg_type = parse_type(stream, false)?;
+        write_token(&arg_type, output);
+
+        let mut arg_name = parse_identifier(stream)?;
+        write_token(&arg_name, output);
+
+        while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::Comma)) {
+            stream.advance();
+            write_token(&Symbol::Comma, output);
+
+            arg_type = parse_type(stream, false)?;
+            write_token(&arg_type, output);
+            arg_name = parse_identifier(stream)?;
+            write_token(&arg_name, output);
+        }
+    }
+    Ok(())
 }
 
 // Compiles a var declaration.

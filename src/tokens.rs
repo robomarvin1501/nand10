@@ -12,8 +12,8 @@ pub enum TokenType {
 impl std::fmt::Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenType::Keyword(keyword) => write!(f, "<keyword> {} </keyword>", keyword),
-            TokenType::Symbol(symbol) => write!(f, "<symbol> {} </symbol>", symbol),
+            TokenType::Keyword(keyword) => write!(f, "{}", keyword),
+            TokenType::Symbol(symbol) => write!(f, "{}", symbol),
             TokenType::IntegerConstant(value) => {
                 write!(f, "<integerConstant> {} </integerConstant>", value)
             }
@@ -21,7 +21,7 @@ impl std::fmt::Display for TokenType {
                 write!(f, "<stringConstant> {} </stringConstant>", value)
             }
             TokenType::Identifier(identifier) => {
-                write!(f, "<identifier> {} </identifier>", identifier)
+                write!(f, "{}", identifier)
             }
         }
     }

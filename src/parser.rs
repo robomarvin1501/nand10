@@ -109,7 +109,7 @@ fn parse_keyword(
     stream: &mut TokenStream,
     valid_keywords: &[Keyword],
 ) -> Result<TokenType, String> {
-    if let Some(token) = stream.advance() {
+    if let Some(token) = stream.advance_prev() {
         if let TokenType::Keyword(keyword) = &token.token {
             if valid_keywords.contains(&keyword) {
                 return Ok(token.token.clone());
@@ -126,7 +126,7 @@ fn parse_keyword(
 
 // Helper to parse a type (int, char, boolean, or class name)
 fn parse_type(stream: &mut TokenStream, allow_void: bool) -> Result<TokenType, String> {
-    if let Some(token) = stream.advance() {
+    if let Some(token) = stream.advance_prev() {
         match &token.token {
             TokenType::Keyword(Keyword::Int)
             | TokenType::Keyword(Keyword::Char)
@@ -144,7 +144,7 @@ fn parse_type(stream: &mut TokenStream, allow_void: bool) -> Result<TokenType, S
 
 // Helper to parse an identifier
 fn parse_identifier(stream: &mut TokenStream) -> Result<TokenType, String> {
-    if let Some(token) = stream.advance() {
+    if let Some(token) = stream.advance_prev() {
         if let TokenType::Identifier(_) = token.token {
             Ok(token.token.clone())
         } else {
@@ -157,7 +157,7 @@ fn parse_identifier(stream: &mut TokenStream) -> Result<TokenType, String> {
 
 // Helper to parse an operator from a list of operators
 fn parse_operator(stream: &mut TokenStream, valid_symbols: &[Symbol]) -> Result<TokenType, String> {
-    if let Some(token) = stream.advance() {
+    if let Some(token) = stream.peek() {
         if let TokenType::Symbol(symbol) = &token.token {
             if valid_symbols.contains(&symbol) {
                 return Ok(token.token.clone());
@@ -218,8 +218,11 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
 // Compiles a (possibly empty) parameter list, not including the
 //      enclosing "()".
 fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "parameterList";
+    write_open_tag(TAG, output);
     if let Some(token) = stream.peek() {
         if token.token == TokenType::Symbol(Symbol::BracketRight) {
+            write_close_tag(TAG, output);
             return Ok(());
         }
 
@@ -242,6 +245,7 @@ fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Resu
     } else {
         return Err("Unexpected end of tokens when compiling parameter list".to_string());
     }
+    write_close_tag(TAG, output);
     Ok(())
 }
 
@@ -533,6 +537,7 @@ fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(
 
     match op {
         Ok(operator) => {
+            stream.advance();
             stream.expect(&operator)?;
             write_token(&operator, output);
             compile_term(stream, output)?;
@@ -719,8 +724,8 @@ mod tests {
 static int x;
 field boolean y;
 field char a, b;
-constructor Test() { }
-function void foo() { }
+constructor Test new() { return this; }
+function void foo() { return; }
 }",
         );
         let expected_output = String::from(
@@ -751,11 +756,15 @@ function void foo() { }
 <subroutineDec>
     <keyword> constructor </keyword>
     <identifier> Test </identifier>
+    <identifier> new </identifier>
     <symbol> ( </symbol>
     <parameterList> </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>
         <symbol> { </symbol>
+            <returnStatement>
+                <identifier> this </identifier>
+            </returnStatement>
         <symbol> } </symbol>
     </subroutineBody>
 </subroutineDec>

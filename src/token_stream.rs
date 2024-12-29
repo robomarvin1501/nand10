@@ -20,6 +20,12 @@ impl<'a> TokenStream<'a> {
         self.current
     }
 
+    pub fn advance_prev(&mut self) -> Option<&'a Token> {
+        let tmp = self.current;
+        self.current = self.tokens.next();
+        tmp
+    }
+
     pub fn peek(&self) -> Option<&Token> {
         self.current
     }

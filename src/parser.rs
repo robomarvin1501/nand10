@@ -155,6 +155,23 @@ fn parse_identifier(stream: &mut TokenStream) -> Result<TokenType, String> {
     }
 }
 
+// Helper to parse an operator from a list of operators
+fn parse_operator(stream: &mut TokenStream, valid_symbols: &[Symbol]) -> Result<TokenType, String> {
+    if let Some(token) = stream.advance() {
+        if let TokenType::Symbol(symbol) = &token.token {
+            if valid_symbols.contains(&symbol) {
+                return Ok(token.token.clone());
+            }
+        }
+        Err(format!(
+            "Expected one of {:?}, found {:?}",
+            valid_symbols, token.token
+        ))
+    } else {
+        Err("Unexpected end of tokens".to_string())
+    }
+}
+
 // Compiles a complete method, function, or constructor.
 //      You can assume that classes with constructors have at least one field,
 //      you will understand why this is necessary in project 11.
@@ -189,6 +206,7 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
     }
 
     compile_statements(stream, output)?;
+    compile_return(stream, output)?;
 
     stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
     write_token(&TokenType::Symbol(Symbol::BracketCurlyRight), output);
@@ -221,6 +239,8 @@ fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Resu
             arg_name = parse_identifier(stream)?;
             write_token(&arg_name, output);
         }
+    } else {
+        return Err("Unexpected end of tokens when compiling parameter list".to_string());
     }
     Ok(())
 }
@@ -258,11 +278,9 @@ fn compile_statements(stream: &mut TokenStream, output: &mut String) -> Result<(
             TokenType::Keyword(Keyword::If) => compile_if(stream, output)?,
             TokenType::Keyword(Keyword::While) => compile_while(stream, output)?,
             TokenType::Keyword(Keyword::Do) => compile_do(stream, output)?,
-            TokenType::Keyword(Keyword::Return) => {
-                compile_return(stream, output)?;
-                break;
-            }
-            _ => return Err(format!("Invalid token {:?}, expected statement", token)),
+            TokenType::Keyword(Keyword::Return) => break,
+
+            _ => break,
         }
     }
 
@@ -296,7 +314,7 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     // Start by checking for an identifier (class/var/subroutine name)
     if let Some(token) = stream.peek() {
         if let TokenType::Identifier(identifier) = &token.token {
-            output.push_str(&format!("<identifier> {} </identifier>\n", identifier));
+            write_token(&identifier, output);
             stream.advance(); // Consume the identifier
         } else {
             return Err(format!("Expected an identifier, found {:?}", token.token));
@@ -310,14 +328,13 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
         match &token.token {
             TokenType::Symbol(Symbol::Period) => {
                 // Handle className|varName.subroutineName(expressionList)
-                output.push_str(&format!("<symbol> . </symbol>\n"));
+                write_token(&Symbol::Period, output);
                 stream.advance(); // Consume '.'
 
                 // Expect another identifier (the subroutine name)
                 if let Some(token) = stream.peek() {
                     if let TokenType::Identifier(subroutine_name) = &token.token {
-                        output
-                            .push_str(&format!("<identifier> {} </identifier>\n", subroutine_name));
+                        write_token(subroutine_name, output);
                         stream.advance(); // Consume the subroutine name
                     } else {
                         return Err(format!(
@@ -346,7 +363,7 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketLeft)) {
         return Err(format!("Error while parsing subroutine call: {}", err));
     }
-    write_token(&TokenType::Symbol(Symbol::BracketLeft), output);
+    write_token(&Symbol::BracketLeft, output);
 
     // Compile the expression list
     compile_expression_list(stream, output)?;
@@ -355,7 +372,7 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketRight)) {
         return Err(format!("Error while parsing subroutine call: {}", err));
     }
-    write_token(&TokenType::Symbol(Symbol::BracketRight), output);
+    write_token(&Symbol::BracketRight, output);
 
     Ok(())
 }
@@ -493,7 +510,38 @@ fn compile_if(stream: &mut TokenStream, output: &mut String) -> Result<(), Strin
 
 // Compiles an expression.
 fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    const TAG: &str = "expression";
+    write_open_tag(TAG, output);
+
+    compile_term(stream, output)?;
+
+    let op = parse_operator(
+        stream,
+        &[
+            Symbol::Plus,
+            Symbol::Minus,
+            Symbol::Divide,
+            Symbol::And,
+            Symbol::Or,
+            Symbol::LessThan,
+            Symbol::GreaterThan,
+            Symbol::Equals,
+            Symbol::ShiftLeft,
+            Symbol::ShiftRight,
+        ],
+    );
+
+    match op {
+        Ok(operator) => {
+            stream.expect(&operator)?;
+            write_token(&operator, output);
+            compile_term(stream, output)?;
+        }
+        Err(_) => {}
+    }
+
+    write_close_tag(TAG, output);
+    Ok(())
 }
 
 // Compiles a term.
@@ -503,16 +551,121 @@ fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(
 // entry, and a subroutine call. A single look-ahead token, which may be one
 // of "[", "(", or "." suffices to distinguish between the three possibilities.
 // Any other token is not part of this term and should not be advanced over.
-fn compile_term() -> Result<(), String> {
-    todo!()
+fn compile_term(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "term";
+    write_open_tag(TAG, output);
+
+    if let Some(token) = stream.peek() {
+        match &token.token {
+            // Handle constants (integer and string literals)
+            TokenType::IntegerConstant(_) | TokenType::StringConstant(_) => {
+                write_token(&token.token, output);
+                stream.advance().unwrap();
+            }
+
+            // Handle keyword constants (true, false, null, this)
+            TokenType::Keyword(keyword)
+                if matches!(
+                    keyword,
+                    Keyword::True | Keyword::False | Keyword::Null | Keyword::This
+                ) =>
+            {
+                write_token(&token.token, output);
+                stream.advance().unwrap();
+            }
+
+            // Handle unary operators followed by a term (-term | ~term | ^term | #term)
+            TokenType::Symbol(Symbol::Minus)
+            | TokenType::Symbol(Symbol::Not)
+            | TokenType::Symbol(Symbol::ShiftLeft)
+            | TokenType::Symbol(Symbol::ShiftRight) => {
+                let operator = token.token.clone(); // Save the operator
+                write_token(&operator, output);
+                stream.advance().unwrap();
+                compile_term(stream, output)?; // Compile the term
+            }
+
+            // Handle expressions in parentheses: (expression)
+            TokenType::Symbol(Symbol::BracketLeft) => {
+                write_token(&token.token, output); // Write '('
+                stream.advance().unwrap();
+                compile_expression(stream, output)?; // Compile the inner expression
+                stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
+                write_token(&TokenType::Symbol(Symbol::BracketRight), output); // Write ')'
+            }
+
+            // Handle identifiers (variable, array entry, or subroutine call)
+            TokenType::Identifier(_) => {
+                let identifier = token.token.clone(); // Save the identifier
+                write_token(&identifier, output);
+                stream.advance().unwrap(); // Advance past the identifier
+
+                if let Some(next_token) = stream.peek() {
+                    match next_token.token {
+                        TokenType::Symbol(Symbol::BracketSquareLeft) => {
+                            // Array entry: varName[expression]
+                            write_token(&TokenType::Symbol(Symbol::BracketSquareLeft), output);
+                            stream.advance().unwrap(); // Consume '['
+                            compile_expression(stream, output)?; // Compile the expression
+                            stream.expect(&TokenType::Symbol(Symbol::BracketSquareRight))?;
+                            write_token(&TokenType::Symbol(Symbol::BracketSquareRight), output);
+                        }
+                        TokenType::Symbol(Symbol::BracketLeft)
+                        | TokenType::Symbol(Symbol::Period) => {
+                            // Subroutine call: subroutineName(expressionList) or
+                            // className.varName.subroutineName(expressionList)
+                            compile_subroutine_call(stream, output)?;
+                        }
+                        _ => {
+                            // Otherwise, it's just a variable (nothing more to process)
+                        }
+                    }
+                }
+            }
+
+            _ => {
+                return Err(format!(
+                    "Unexpected token {:?} when compiling term",
+                    token.token
+                ));
+            }
+        }
+    } else {
+        return Err("Unexpected end of tokens when compiling term".to_string());
+    }
+
+    write_close_tag(TAG, output);
+    Ok(())
 }
 
 // Compiles a (possibly empty) comma-separated list of expressions.
-fn compile_expression_list(
-    token_stream: &mut TokenStream,
-    output: &mut String,
-) -> Result<(), String> {
-    todo!()
+fn compile_expression_list(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "expressionList";
+
+    if let Some(token) = stream.peek() {
+        if !matches!(token.token, TokenType::Symbol(Symbol::BracketRight)) {
+            // There is at least one expression, so compile it
+            write_open_tag(TAG, output);
+            compile_expression(stream, output)?;
+
+            // Handle any additional comma-separated expressions
+            while let Some(token) = stream.peek() {
+                if token.token == TokenType::Symbol(Symbol::Comma) {
+                    stream.expect(&TokenType::Symbol(Symbol::Comma))?;
+                    write_token(&TokenType::Symbol(Symbol::Comma), output);
+
+                    compile_expression(stream, output)?;
+                } else {
+                    break; // No more expressions
+                }
+            }
+            write_close_tag(TAG, output);
+        }
+    } else {
+        return Err("Unexpected end of tokens when compiling expression list".to_string());
+    }
+
+    Ok(())
 }
 
 fn write_open_tag(tag: &str, output: &mut String) {
@@ -524,7 +677,7 @@ fn write_close_tag(tag: &str, output: &mut String) {
 }
 
 fn write_token<T: std::fmt::Display>(token: &T, output: &mut String) {
-    output.push_str(&format!("{}", token));
+    output.push_str(&format!("{}\n", token));
 }
 
 #[cfg(test)]

@@ -10,11 +10,6 @@ mod token_stream;
 mod tokeniser;
 mod tokens;
 
-// TODO derive macro that has a print or something that emits
-// #indent size <struct name>
-// #indent size + 1     <struct body>
-// #indent size </struct name>
-
 static JACK_FILE_EXTENSION: &'static str = "jack";
 static VM_FILE_EXTENSION: &'static str = "vm";
 
@@ -65,13 +60,21 @@ fn compile_file(input_path: PathBuf, output_path: &PathBuf) {
 
     // Parse the file
     println!("Parsing: {input_file_path}");
-    parser::parse(contents);
+    let xml = parser::parse(contents);
     // Append the output
     println!("Output: {output_file_path}");
+    match xml {
+        Ok(code) => write_to_file(output_path, vec![code]),
+        Err(e) => panic!("Tried to compile, but got error {:?}", e),
+    }
 }
 
 fn write_to_file(path: &PathBuf, s: Vec<String>) {
-    let mut file = OpenOptions::new().write(true).open(path).unwrap();
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(path)
+        .unwrap();
     for line in s {
         file.write(line.as_bytes()).unwrap();
     }

@@ -2,7 +2,7 @@ use crate::token_stream::TokenStream;
 use crate::tokeniser::tokenise;
 use crate::tokens::{Keyword, Symbol, TokenType};
 
-pub fn parse(input_data: String) {
+pub fn parse(input_data: String) -> Result<String, String>{
     let tokens = tokenise(input_data);
     let mut output = String::new();
     let mut token_stream: TokenStream = TokenStream::new(&tokens);
@@ -11,14 +11,15 @@ pub fn parse(input_data: String) {
         if let Err(err) = match token.token.clone() {
             TokenType::Keyword(keyword) => match keyword {
                 Keyword::Class => compile_class(&mut token_stream, &mut output),
-                _ => panic!("Compilation call to something not the class at the top level"),
+                _ => return Err("Compilation call to something not the class at the top level".to_string()),
             },
-            _ => panic!("Compilation call to something not the class at the top level"),
+            _ => return Err("Compilation call to something not the class at the top level".to_string()),
         } {
-            eprintln!("ERROR: {}", err);
-            break;
+            return Err(format!("ERROR: {}", err));
         }
     }
+
+    return Ok(output);
 }
 
 // Compiles a complete class.

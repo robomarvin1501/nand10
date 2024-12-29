@@ -198,6 +198,15 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
     stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
     write_token(&TokenType::Symbol(Symbol::BracketRight), output);
 
+    compile_subroutine_body(stream, output);
+
+    write_close_tag(TAG, output);
+    Ok(())
+}
+
+fn compile_subroutine_body(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "subroutineBody";
+    write_open_tag(TAG, output);
     stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
     write_token(&TokenType::Symbol(Symbol::BracketCurlyLeft), output);
 
@@ -206,12 +215,11 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
     }
 
     compile_statements(stream, output)?;
-    compile_return(stream, output)?;
 
     stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
     write_token(&TokenType::Symbol(Symbol::BracketCurlyRight), output);
-
     write_close_tag(TAG, output);
+
     Ok(())
 }
 
@@ -282,7 +290,10 @@ fn compile_statements(stream: &mut TokenStream, output: &mut String) -> Result<(
             TokenType::Keyword(Keyword::If) => compile_if(stream, output)?,
             TokenType::Keyword(Keyword::While) => compile_while(stream, output)?,
             TokenType::Keyword(Keyword::Do) => compile_do(stream, output)?,
-            TokenType::Keyword(Keyword::Return) => break,
+            TokenType::Keyword(Keyword::Return) => {
+                compile_return(stream, output)?;
+                break;
+            }
 
             _ => break,
         }

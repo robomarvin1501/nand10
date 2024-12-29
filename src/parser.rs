@@ -77,85 +77,81 @@ fn compile_class(stream: &mut TokenStream, output: &mut String) -> Result<(), St
 fn compile_class_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
     const TAG: &str = "classVarDec";
     write_open_tag(TAG, output);
-    let kind: TokenType;
-    if let Some(token) = stream.peek() {
-        match &token.token {
-            TokenType::Keyword(Keyword::Field) | TokenType::Keyword(Keyword::Static) => {
-                kind = token.token.clone();
-                stream.advance();
-            }
-            _ => return Err(format!("Expected static or field, found {:?}", token.token)),
-        }
-    } else {
-        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
-    }
 
-    let var_type: TokenType;
-    if let Some(token) = stream.peek() {
-        match &token.token {
-            // TODO What if it's a class name?
-            TokenType::Keyword(Keyword::Int)
-            | TokenType::Keyword(Keyword::Char)
-            | TokenType::Keyword(Keyword::Boolean) => {
-                var_type = token.token.clone();
-                stream.advance();
-            }
-            _ => return Err(format!("Expected type, found {:?}", token.token)),
-        }
-    } else {
-        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
-    }
+    // parse kind (static or field)
+    let kind = parse_keyword(stream, &[Keyword::Static, Keyword::Field])?;
 
-    let mut var_name: TokenType;
-    if let Some(token) = stream.peek() {
-        match &token.token {
-            TokenType::Identifier(_) => {
-                var_name = token.token.clone();
-                stream.advance();
-            }
-            _ => return Err(format!("Expected variable name, found {:?}", token.token)),
-        }
-    } else {
-        return Err("Unexpected end of tokens when parsing class variable declaration".to_string());
-    }
+    // parse type (int, char, boolean, class name)
+    let var_type = parse_type(stream)?;
+
+    // parse variable name
+    let mut var_name = parse_identifier(stream)?;
 
     // output variable xml
     write_token(&kind, output);
     write_token(&var_type, output);
     write_token(&var_name, output);
 
-    while let Some(token) = stream.peek() {
-        match &token.token {
-            TokenType::Symbol(Symbol::Comma) => {
-                stream.advance();
-                if let Some(token) = stream.peek() {
-                    match &token.token {
-                        TokenType::Identifier(_) => {
-                            var_name = token.token.clone();
-                            write_token(&Symbol::Comma, output);
-                            write_token(&var_name, output);
-                            stream.advance();
-                        }
-                        _ => {
-                            return Err(format!("Expected variable name, found {:?}", token.token))
-                        }
-                    }
-                } else {
-                    return Err(
-                        "Unexpected end of tokens when parsing class variable declaration"
-                            .to_string(),
-                    );
-                }
-                // output more variable xml
-            }
-            _ => break,
-        }
+    while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::Comma)) {
+        stream.advance();
+        write_token(&Symbol::Comma, output);
+
+        var_name = parse_identifier(stream)?;
+        write_token(&var_name, output);
     }
     stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
     write_token(&Symbol::SemiColon, output);
 
     write_close_tag(TAG, output);
     Ok(())
+}
+
+// Helper to parse a keyword from a list of valid keywords
+fn parse_keyword(
+    stream: &mut TokenStream,
+    valid_keywords: &[Keyword],
+) -> Result<TokenType, String> {
+    if let Some(token) = stream.advance() {
+        if let TokenType::Keyword(keyword) = &token.token {
+            if valid_keywords.contains(&keyword) {
+                return Ok(token.token.clone());
+            }
+        }
+        Err(format!(
+            "Expected one of {:?}, found {:?}",
+            valid_keywords, token.token
+        ))
+    } else {
+        Err("Unexpected end of tokens".to_string())
+    }
+}
+
+// Helper to parse a type (int, char, boolean, or class name)
+fn parse_type(stream: &mut TokenStream) -> Result<TokenType, String> {
+    if let Some(token) = stream.advance() {
+        match &token.token {
+            TokenType::Keyword(Keyword::Int)
+            | TokenType::Keyword(Keyword::Char)
+            | TokenType::Keyword(Keyword::Boolean)
+            | TokenType::Identifier(_) => Ok(token.token.clone()),
+            _ => Err(format!("Expected a type, found {:?}", token.token)),
+        }
+    } else {
+        Err("Unexpected end of tokens".to_string())
+    }
+}
+
+// Helper to parse an identifier
+fn parse_identifier(stream: &mut TokenStream) -> Result<TokenType, String> {
+    if let Some(token) = stream.advance() {
+        if let TokenType::Identifier(_) = token.token {
+            Ok(token.token.clone())
+        } else {
+            Err(format!("Expected an identifier, found {:?}", token.token))
+        }
+    } else {
+        Err("Unexpected end of tokens".to_string())
+    }
 }
 
 // Compiles a complete method, function, or constructor.

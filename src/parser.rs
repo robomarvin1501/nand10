@@ -82,7 +82,7 @@ fn compile_class_var_dec(stream: &mut TokenStream, output: &mut String) -> Resul
     let kind = parse_keyword(stream, &[Keyword::Static, Keyword::Field])?;
 
     // parse type (int, char, boolean, class name)
-    let var_type = parse_type(stream)?;
+    let var_type = parse_type(stream, false)?;
 
     // parse variable name
     let mut var_name = parse_identifier(stream)?;
@@ -127,13 +127,16 @@ fn parse_keyword(
 }
 
 // Helper to parse a type (int, char, boolean, or class name)
-fn parse_type(stream: &mut TokenStream) -> Result<TokenType, String> {
+fn parse_type(stream: &mut TokenStream, allow_void: bool) -> Result<TokenType, String> {
     if let Some(token) = stream.advance() {
         match &token.token {
             TokenType::Keyword(Keyword::Int)
             | TokenType::Keyword(Keyword::Char)
             | TokenType::Keyword(Keyword::Boolean)
             | TokenType::Identifier(_) => Ok(token.token.clone()),
+
+            TokenType::Keyword(Keyword::Void) if allow_void => Ok(token.token.clone()),
+
             _ => Err(format!("Expected a type, found {:?}", token.token)),
         }
     } else {
@@ -158,38 +161,89 @@ fn parse_identifier(stream: &mut TokenStream) -> Result<TokenType, String> {
 //      You can assume that classes with constructors have at least one field,
 //      you will understand why this is necessary in project 11.
 fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "subroutineDec";
+    write_open_tag(TAG, output);
+
+    let kind = parse_keyword(
+        stream,
+        &[Keyword::Constructor, Keyword::Function, Keyword::Method],
+    )?;
+    let return_type = parse_type(stream, true)?;
+
+    let function_name = parse_identifier(stream);
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketLeft))?;
+    write_token(&TokenType::Symbol(Symbol::BracketLeft), output);
+
+    compile_parameter_list(stream, output)?;
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
+    write_token(&TokenType::Symbol(Symbol::BracketRight), output);
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+    write_token(&TokenType::Symbol(Symbol::BracketCurlyLeft), output);
+
+    while matches!(stream.peek(), Some(token) if token.token == TokenType::Keyword(Keyword::Var)) {
+        compile_var_dec(stream, output)?;
+    }
+
+    compile_statements(stream, output)?;
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+    write_token(&TokenType::Symbol(Symbol::BracketCurlyRight), output);
+
+    write_close_tag(TAG, output);
     Ok(())
 }
 
 // Compiles a (possibly empty) parameter list, not including the
 //      enclosing "()".
 fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    Ok(())
+    todo!()
 }
 
 // Compiles a var declaration.
-fn compile_var_dec() -> Result<(), String> {
-    Ok(())
+fn compile_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
-// Compiles a sequence of statements, not including the enclosing "{Ok(())}".
-fn compile_statements() -> Result<(), String> {
+// Compiles a sequence of statements, not including the enclosing "}".
+fn compile_statements(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "statements";
+    write_open_tag(TAG, output);
+
+    while let Some(token) = stream.peek() {
+        match token.token {
+            TokenType::Keyword(Keyword::Let) => compile_let(stream, output)?,
+            TokenType::Keyword(Keyword::If) => compile_if(stream, output)?,
+            TokenType::Keyword(Keyword::While) => compile_while(stream, output)?,
+            TokenType::Keyword(Keyword::Do) => compile_do(stream, output)?,
+            TokenType::Keyword(Keyword::Return) => {
+                compile_return(stream, output)?;
+                break;
+            }
+            _ => return Err(format!("Invalid token {:?}, expected statement", token)),
+        }
+    }
+
+    write_close_tag(TAG, output);
     Ok(())
 }
 
 // Compiles a do statement.
 fn compile_do(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    output.push_str("<doStatement>\n");
+    const TAG: &str = "doStatement";
+    write_open_tag(TAG, output);
 
     stream.expect(&TokenType::Keyword(Keyword::Do))?;
-    output.push_str(&format!("{}\n", Keyword::Do));
+    write_token(&Keyword::Do, output);
 
     compile_subroutine_call(stream, output)?;
 
     stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
-    output.push_str(&format!("{}\n", Symbol::SemiColon));
+    write_token(&Symbol::SemiColon, output);
 
-    output.push_str("</doStatement>\n");
+    write_close_tag(TAG, output);
     Ok(())
 }
 
@@ -252,7 +306,7 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketLeft)) {
         return Err(format!("Error while parsing subroutine call: {}", err));
     }
-    output.push_str(&format!("<symbol> ( </symbol>\n"));
+    write_token(&TokenType::Symbol(Symbol::BracketLeft), output);
 
     // Compile the expression list
     compile_expression_list(stream, output)?;
@@ -261,34 +315,34 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     if let Err(err) = stream.expect(&TokenType::Symbol(Symbol::BracketRight)) {
         return Err(format!("Error while parsing subroutine call: {}", err));
     }
-    output.push_str(&format!("<symbol> ) </symbol>\n"));
+    write_token(&TokenType::Symbol(Symbol::BracketRight), output);
 
     Ok(())
 }
 
 // Compiles a let statement.
-fn compile_let() -> Result<(), String> {
-    Ok(())
+fn compile_let(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
 // Compiles a while statement.
-fn compile_while() -> Result<(), String> {
-    Ok(())
+fn compile_while(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
 // Compiles a return statement.
-fn compile_return() -> Result<(), String> {
-    Ok(())
+fn compile_return(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
 // Compiles a if statement, possibly with a trailing else clause.
-fn compile_if() -> Result<(), String> {
-    Ok(())
+fn compile_if(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
 // Compiles an expression.
-fn compile_expression() -> Result<(), String> {
-    Ok(())
+fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    todo!()
 }
 
 // Compiles a term.
@@ -299,7 +353,7 @@ fn compile_expression() -> Result<(), String> {
 // of "[", "(", or "." suffices to distinguish between the three possibilities.
 // Any other token is not part of this term and should not be advanced over.
 fn compile_term() -> Result<(), String> {
-    Ok(())
+    todo!()
 }
 
 // Compiles a (possibly empty) comma-separated list of expressions.
@@ -307,7 +361,7 @@ fn compile_expression_list(
     token_stream: &mut TokenStream,
     output: &mut String,
 ) -> Result<(), String> {
-    Ok(())
+    todo!()
 }
 
 fn write_open_tag(tag: &str, output: &mut String) {

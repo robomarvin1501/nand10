@@ -57,7 +57,6 @@ pub fn tokenise(input_data: String) -> Vec<Token> {
         finalise_token(&mut current_token, &mut tokens);
     }
 
-    println!("{}", whitespaces_cleaned);
     return tokens;
 }
 

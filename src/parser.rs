@@ -660,6 +660,7 @@ fn compile_expression_list(stream: &mut TokenStream, output: &mut String) -> Res
     const TAG: &str = "expressionList";
 
     if let Some(token) = stream.peek() {
+        write_open_tag(TAG, output);
         if !matches!(token.token, TokenType::Symbol(Symbol::BracketRight)) {
             // There is at least one expression, so compile it
             write_open_tag(TAG, output);
@@ -676,12 +677,12 @@ fn compile_expression_list(stream: &mut TokenStream, output: &mut String) -> Res
                     break; // No more expressions
                 }
             }
-            write_close_tag(TAG, output);
         }
     } else {
         return Err("Unexpected end of tokens when compiling expression list".to_string());
     }
 
+    write_close_tag(TAG, output);
     Ok(())
 }
 

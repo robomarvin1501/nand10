@@ -203,7 +203,7 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
 //      enclosing "()".
 fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
     if let Some(token) = stream.peek() {
-        if token.token ==  TokenType::Symbol(Symbol::BracketRight) {
+        if token.token == TokenType::Symbol(Symbol::BracketRight) {
             return Ok(());
         }
 
@@ -213,7 +213,8 @@ fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Resu
         let mut arg_name = parse_identifier(stream)?;
         write_token(&arg_name, output);
 
-        while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::Comma)) {
+        while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::Comma))
+        {
             stream.advance();
             write_token(&Symbol::Comma, output);
 
@@ -228,7 +229,24 @@ fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Resu
 
 // Compiles a var declaration.
 fn compile_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    stream.expect(&TokenType::Keyword(Keyword::Var))?;
+    write_token(&TokenType::Keyword(Keyword::Var), output);
+
+    let var_type = parse_type(stream, false)?;
+    write_token(&var_type, output);
+
+    let mut var_name = parse_identifier(stream)?;
+    write_token(&var_name, output);
+
+    while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::Comma)) {
+        stream.advance();
+        write_token(&Symbol::Comma, output);
+
+        var_name = parse_identifier(stream)?;
+        write_token(&var_name, output);
+    }
+
+    Ok(())
 }
 
 // Compiles a sequence of statements, not including the enclosing "}".

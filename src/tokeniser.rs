@@ -138,3 +138,11 @@ fn remove_multi_line_comments(input_data: String) -> String {
     }
     return result;
 }
+
+pub fn format_tokens_for_display(tokens: Vec<Token>) -> String {
+    let mut output: String = String::new();
+    for token in tokens {
+        output.push_str(&format!("{}\n", token));
+    }
+    output
+}

@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::token_stream::TokenStream;
 use crate::tokeniser::tokenise;
 use crate::tokens::{Keyword, Symbol, TokenType};
@@ -364,22 +362,133 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
 
 // Compiles a let statement.
 fn compile_let(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    const TAG: &str = "letStatement";
+    write_open_tag(TAG, output);
+    stream.expect(&TokenType::Keyword(Keyword::Let))?;
+    write_token(&Keyword::Let, output);
+
+    let var_name = parse_identifier(stream)?;
+    write_token(&var_name, output);
+
+    while matches!(stream.peek(), Some(token) if token.token == TokenType::Symbol(Symbol::BracketSquareLeft))
+    {
+        stream.expect(&TokenType::Symbol(Symbol::BracketSquareLeft))?;
+        write_token(&Symbol::BracketSquareLeft, output);
+        compile_expression(stream, output)?;
+        stream.expect(&TokenType::Symbol(Symbol::BracketSquareRight))?;
+        write_token(&Symbol::BracketSquareRight, output);
+    }
+
+    stream.expect(&TokenType::Symbol(Symbol::Equals))?;
+    write_token(&TokenType::Symbol(Symbol::Equals), output);
+
+    compile_expression(stream, output)?;
+
+    stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
+    write_token(&Symbol::SemiColon, output);
+
+    write_close_tag(TAG, output);
+    Ok(())
 }
 
 // Compiles a while statement.
 fn compile_while(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    const TAG: &str = "whileStatement";
+    write_open_tag(TAG, output);
+
+    stream.expect(&TokenType::Keyword(Keyword::While))?;
+    write_token(&Keyword::While, output);
+
+    // while condition
+    stream.expect(&TokenType::Symbol(Symbol::BracketLeft))?;
+    write_token(&Symbol::BracketLeft, output);
+
+    compile_expression(stream, output)?;
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
+    write_token(&Symbol::BracketRight, output);
+
+    // while body
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+    write_token(&Symbol::BracketCurlyRight, output);
+
+    compile_statements(stream, output)?;
+
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+    write_token(&Symbol::BracketCurlyLeft, output);
+
+    write_close_tag(TAG, output);
+    Ok(())
 }
 
 // Compiles a return statement.
 fn compile_return(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    const TAG: &str = "returnStatement";
+    write_open_tag(TAG, output);
+
+    stream.expect(&TokenType::Keyword(Keyword::Return))?;
+    write_token(&Keyword::Return, output);
+
+    if let Some(token) = stream.peek() {
+        if token.token != TokenType::Symbol(Symbol::SemiColon) {
+            compile_expression(stream, output)?;
+        }
+    } else {
+        return Err("Unexpected end of tokens when compiling return".to_string());
+    }
+
+    stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
+    write_token(&Symbol::SemiColon, output);
+
+    write_close_tag(TAG, output);
+    Ok(())
 }
 
 // Compiles a if statement, possibly with a trailing else clause.
 fn compile_if(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
-    todo!()
+    const TAG: &str = "ifStatement";
+    write_open_tag(TAG, output);
+
+    // If and opening bracket
+    stream.expect(&TokenType::Keyword(Keyword::If))?;
+    write_token(&Keyword::If, output);
+    stream.expect(&TokenType::Symbol(Symbol::BracketLeft))?;
+    write_token(&Symbol::BracketLeft, output);
+    // brackets contents
+    compile_expression(stream, output)?;
+    // closing bracket
+    stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
+    write_token(&Symbol::BracketRight, output);
+
+    // Body open
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+    write_token(&Symbol::BracketCurlyLeft, output);
+    // Body
+    compile_statements(stream, output)?;
+    // Body close
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+    write_token(&Symbol::BracketCurlyRight, output);
+
+    if let Some(token) = stream.peek() {
+        if token.token == TokenType::Keyword(Keyword::Else) {
+            stream.expect(&TokenType::Keyword(Keyword::Else))?;
+            write_token(&Keyword::Else, output);
+            // Body open
+            stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+            write_token(&Symbol::BracketCurlyLeft, output);
+            // Body
+            compile_statements(stream, output)?;
+            // Body close
+            stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+            write_token(&Symbol::BracketCurlyRight, output);
+        }
+    } else {
+        return Err("Unexpected end of tokens when compiling if".to_string());
+    }
+
+    write_close_tag(TAG, output);
+
+    Ok(())
 }
 
 // Compiles an expression.

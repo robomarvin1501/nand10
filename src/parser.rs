@@ -199,7 +199,7 @@ fn compile_subroutine(stream: &mut TokenStream, output: &mut String) -> Result<(
     stream.expect(&TokenType::Symbol(Symbol::BracketRight))?;
     write_token(&TokenType::Symbol(Symbol::BracketRight), output);
 
-    compile_subroutine_body(stream, output);
+    compile_subroutine_body(stream, output)?;
 
     write_close_tag(TAG, output);
     Ok(())
@@ -260,6 +260,9 @@ fn compile_parameter_list(stream: &mut TokenStream, output: &mut String) -> Resu
 
 // Compiles a var declaration.
 fn compile_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+    const TAG: &str = "varDec";
+    write_open_tag(TAG, output);
+
     stream.expect(&TokenType::Keyword(Keyword::Var))?;
     write_token(&TokenType::Keyword(Keyword::Var), output);
 
@@ -277,6 +280,10 @@ fn compile_var_dec(stream: &mut TokenStream, output: &mut String) -> Result<(), 
         write_token(&var_name, output);
     }
 
+    stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
+    write_token(&Symbol::SemiColon, output);
+
+    write_close_tag(TAG, output);
     Ok(())
 }
 
@@ -442,13 +449,13 @@ fn compile_while(stream: &mut TokenStream, output: &mut String) -> Result<(), St
     write_token(&Symbol::BracketRight, output);
 
     // while body
-    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
-    write_token(&Symbol::BracketCurlyRight, output);
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
+    write_token(&Symbol::BracketCurlyLeft, output);
 
     compile_statements(stream, output)?;
 
-    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyLeft))?;
-    write_token(&Symbol::BracketCurlyLeft, output);
+    stream.expect(&TokenType::Symbol(Symbol::BracketCurlyRight))?;
+    write_token(&Symbol::BracketCurlyRight, output);
 
     write_close_tag(TAG, output);
     Ok(())
@@ -663,7 +670,6 @@ fn compile_expression_list(stream: &mut TokenStream, output: &mut String) -> Res
         write_open_tag(TAG, output);
         if !matches!(token.token, TokenType::Symbol(Symbol::BracketRight)) {
             // There is at least one expression, so compile it
-            write_open_tag(TAG, output);
             compile_expression(stream, output)?;
 
             // Handle any additional comma-separated expressions

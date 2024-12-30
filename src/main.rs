@@ -54,15 +54,9 @@ fn compile_file(input_path: PathBuf, output_path: &PathBuf) {
     let contents: String =
         fs::read_to_string(&input_path).expect("Should have been able to read file");
 
-    // let file_name = &input_path.file_stem().unwrap().to_str().unwrap();
-    let input_file_path = &input_path.to_str().unwrap();
-    let output_file_path = &output_path.to_str().unwrap();
-
     // Parse the file
-    println!("Parsing: {input_file_path}");
     let xml = parser::parse(contents);
     // Append the output
-    println!("Output: {output_file_path}");
     match xml {
         Ok(code) => write_to_file(output_path, vec![code]),
         Err(e) => panic!("Tried to compile, but got error {:?}", e),

@@ -19,7 +19,7 @@ pub fn parse(input_data: String) -> Result<String, String>{
         }
     }
 
-    return Ok(output);
+    Ok(output)
 }
 
 // Compiles a complete class.

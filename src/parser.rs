@@ -319,7 +319,7 @@ fn compile_do(stream: &mut TokenStream, output: &mut String) -> Result<(), Strin
     stream.expect(&TokenType::Keyword(Keyword::Do))?;
     write_token(&Keyword::Do, output);
 
-    compile_subroutine_call(stream, output)?;
+    compile_subroutine_call_full(stream, output)?;
 
     stream.expect(&TokenType::Symbol(Symbol::SemiColon))?;
     write_token(&Symbol::SemiColon, output);
@@ -329,7 +329,7 @@ fn compile_do(stream: &mut TokenStream, output: &mut String) -> Result<(), Strin
 }
 
 // Compiles a subroutine call.
-fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
+fn compile_subroutine_call_full(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
     // A subroutine call can be of the form:
     // subroutineName(expressionList) OR
     // className|varName.subroutineName(expressionList)
@@ -345,6 +345,16 @@ fn compile_subroutine_call(stream: &mut TokenStream, output: &mut String) -> Res
     } else {
         return Err("Unexpected end of tokens while parsing subroutine call".to_string());
     }
+
+    // Delegate to `compile_subroutine_call_simple` to handle the rest
+    compile_subroutine_call_simple(stream, output)?;
+
+    Ok(())
+}
+
+// Compile a subroutine when the token that may or may not come before a potential
+// dot has already been compiled
+fn compile_subroutine_call_simple(stream: &mut TokenStream, output: &mut String) -> Result<(), String> {
 
     // Look for a '.' or '(' to determine the form of the subroutine call
     if let Some(token) = stream.peek() {
@@ -543,6 +553,7 @@ fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(
         &[
             Symbol::Plus,
             Symbol::Minus,
+            Symbol::Times,
             Symbol::Divide,
             Symbol::And,
             Symbol::Or,
@@ -556,7 +567,6 @@ fn compile_expression(stream: &mut TokenStream, output: &mut String) -> Result<(
 
     match op {
         Ok(operator) => {
-            stream.advance();
             stream.expect(&operator)?;
             write_token(&operator, output);
             compile_term(stream, output)?;
@@ -638,7 +648,7 @@ fn compile_term(stream: &mut TokenStream, output: &mut String) -> Result<(), Str
                         | TokenType::Symbol(Symbol::Period) => {
                             // Subroutine call: subroutineName(expressionList) or
                             // className.varName.subroutineName(expressionList)
-                            compile_subroutine_call(stream, output)?;
+                            compile_subroutine_call_simple(stream, output)?;
                         }
                         _ => {
                             // Otherwise, it's just a variable (nothing more to process)

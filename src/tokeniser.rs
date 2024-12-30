@@ -1,4 +1,5 @@
 use crate::tokens::{Identifier, Keyword, Symbol, Token, TokenType};
+use std::iter::Peekable;
 
 const COMMENT_BEGIN: &'static str = "//";
 const DELIMITERS: &'static str = " \n\t\r";
@@ -82,16 +83,19 @@ fn collect_string_constant(chars: &mut impl Iterator<Item = char>) -> String {
     string_constant
 }
 
-fn collect_integer_constant(start: char, chars: &mut impl Iterator<Item = char>) -> u16 {
+fn collect_integer_constant(start: char, chars: &mut Peekable<impl Iterator<Item = char>>) -> u16 {
     let mut num = start.to_digit(10).unwrap() as u16;
-    while let Some(c) = chars.peekable().peek() {
+
+    // Collect digits while they're available
+    while let Some(&c) = chars.peek() {
         if c.is_digit(10) {
             num = num * 10 + c.to_digit(10).unwrap() as u16;
-            chars.next();
+            chars.next(); // Consume the digit
         } else {
             break;
         }
     }
+
     num
 }
 

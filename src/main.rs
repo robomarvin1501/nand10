@@ -73,6 +73,7 @@ fn write_to_file(path: &PathBuf, s: Vec<String>) {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .open(path)
         .unwrap();
     for line in s {

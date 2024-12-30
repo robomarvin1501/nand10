@@ -224,10 +224,10 @@ impl std::fmt::Display for Symbol {
             Symbol::Times => "*",
             Symbol::Divide => "/",
 
-            Symbol::And => "&amp",
+            Symbol::And => "&amp;",
             Symbol::Or => "|",
-            Symbol::LessThan => "&lt",
-            Symbol::GreaterThan => "&gt",
+            Symbol::LessThan => "&lt;",
+            Symbol::GreaterThan => "&gt;",
             Symbol::Equals => "=",
             Symbol::Not => "~",
 

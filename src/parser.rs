@@ -736,6 +736,8 @@ mod tests {
 <symbol> . </symbol>
 <identifier> world </identifier>
 <symbol> ( </symbol>
+<expressionList>
+</expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
 </doStatement>

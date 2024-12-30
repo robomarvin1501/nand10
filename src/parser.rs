@@ -765,51 +765,67 @@ function void foo() { return; }
 <identifier> Test </identifier>
 <symbol> { </symbol>
 <classVarDec>
-    <keyword> static </keyword>
-    <keyword> int </keyword>
-    <identifier> x </identifier>
-    <symbol> ; </symbol>
+<keyword> static </keyword>
+<keyword> int </keyword>
+<identifier> x </identifier>
+<symbol> ; </symbol>
 </classVarDec>
 <classVarDec>
-    <keyword> field </keyword>
-    <keyword> boolean </keyword>
-    <identifier> y </identifier>
-    <symbol> ; </symbol>
+<keyword> field </keyword>
+<keyword> boolean </keyword>
+<identifier> y </identifier>
+<symbol> ; </symbol>
 </classVarDec>
 <classVarDec>
-    <keyword> field </keyword>
-    <keyword> char </keyword>
-    <identifier> a </identifier>
-    <symbol> , </symbol>
-    <identifier> b </identifier>
-    <symbol> ; </symbol>
+<keyword> field </keyword>
+<keyword> char </keyword>
+<identifier> a </identifier>
+<symbol> , </symbol>
+<identifier> b </identifier>
+<symbol> ; </symbol>
 </classVarDec>
 <subroutineDec>
-    <keyword> constructor </keyword>
-    <identifier> Test </identifier>
-    <identifier> new </identifier>
-    <symbol> ( </symbol>
-    <parameterList> </parameterList>
-    <symbol> ) </symbol>
-    <subroutineBody>
-        <symbol> { </symbol>
-            <returnStatement>
-                <identifier> this </identifier>
-            </returnStatement>
-        <symbol> } </symbol>
-    </subroutineBody>
+<keyword> constructor </keyword>
+<identifier> Test </identifier>
+<identifier> new </identifier>
+<symbol> ( </symbol>
+<parameterList>
+</parameterList>
+<symbol> ) </symbol>
+<subroutineBody>
+<symbol> { </symbol>
+<statements>
+<returnStatement>
+<keyword> return </keyword>
+<expression>
+<term>
+<keyword> this </keyword>
+</term>
+</expression>
+<symbol> ; </symbol>
+</returnStatement>
+</statements>
+<symbol> } </symbol>
+</subroutineBody>
 </subroutineDec>
 <subroutineDec>
-    <keyword> function </keyword>
-    <keyword> void </keyword>
-    <identifier> foo </identifier>
-    <symbol> ( </symbol>
-    <parameterList> </parameterList>
-    <symbol> ) </symbol>
-    <subroutineBody>
-        <symbol> { </symbol>
-        <symbol> } </symbol>
-    </subroutineBody>
+<keyword> function </keyword>
+<keyword> void </keyword>
+<identifier> foo </identifier>
+<symbol> ( </symbol>
+<parameterList>
+</parameterList>
+<symbol> ) </symbol>
+<subroutineBody>
+<symbol> { </symbol>
+<statements>
+<returnStatement>
+<keyword> return </keyword>
+<symbol> ; </symbol>
+</returnStatement>
+</statements>
+<symbol> } </symbol>
+</subroutineBody>
 </subroutineDec>
 <symbol> } </symbol>
 </class>
@@ -821,12 +837,12 @@ function void foo() { return; }
         let comp = compile_class(&mut token_stream, &mut output);
         assert!(
             comp.is_ok(),
-            "compile_do should succeed, but got: {:?}",
+            "compile_class should succeed, but got: {:?}",
             comp
         );
         assert_eq!(
             output, expected_output,
-            "Output of compile_do does not match the expected output"
+            "Output of compile_class does not match the expected output"
         );
     }
 }

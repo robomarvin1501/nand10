@@ -2,7 +2,6 @@ use crate::tokens::{Identifier, Keyword, Symbol, Token, TokenType};
 use std::iter::Peekable;
 
 const COMMENT_BEGIN: &'static str = "//";
-const DELIMITERS: &'static str = " \n\t\r";
 
 pub fn tokenise(input_data: String) -> Vec<Token> {
     let whitespaces_cleaned: String = remove_whitespace(input_data);
@@ -142,6 +141,7 @@ fn remove_multi_line_comments(input_data: String) -> String {
     return result;
 }
 
+#[allow(dead_code)]
 pub fn format_tokens_for_display(tokens: Vec<Token>) -> String {
     let mut output: String = String::new();
     for token in tokens {

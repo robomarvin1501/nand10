@@ -11,7 +11,7 @@ mod tokeniser;
 mod tokens;
 
 static JACK_FILE_EXTENSION: &'static str = "jack";
-static VM_FILE_EXTENSION: &'static str = "vm";
+static XML_FILE_EXTENSION: &'static str = "xml";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -79,8 +79,8 @@ fn create_vm_file_path(input: &Path) -> Result<PathBuf, String> {
     if !input.is_file() {
         return Err(format!("Input path {:?} is not a file", input));
     }
-    // Input is a file, change its extension to VM_FILE_EXTENSION
+    // Input is a file, change its extension to XML_FILE_EXTENSION
     let mut new_file_path = input.to_path_buf();
-    new_file_path.set_extension(VM_FILE_EXTENSION);
+    new_file_path.set_extension(XML_FILE_EXTENSION);
     Ok(new_file_path)
 }
